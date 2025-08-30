@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Shop {
+  id           String       @id @default(cuid())
+  shop         String       @unique
+  accessToken  String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  settings     Json         @default("{\"bestellIdLength\":5,\"emailEnabled\":false,\"webhookUrl\":\"\",\"rateLimit\":10}")
+  forms        Form[]
+  submissions  Submission[]
+  
+  @@map("shops")
+}
+
+model Form {
+  id          String       @id @default(cuid())
+  shopId      String
+  name        String
+  slug        String       @unique
+  schema      Json         // fields, steps, validation, styling
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  shop        Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+  
+  @@index([shopId, active])
+  @@map("forms")
+}
+
+model Submission {
+  id         String   @id @default(cuid())
+  formId     String
+  shopId     String
+  customerId String?  // Shopify Customer GID
+  email      String
+  socialName String
+  bestellId  String
+  payload    Json     // all form field values
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  form       Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId, formId])
+  @@index([shopId, bestellId])
+  @@index([email])
+  @@map("submissions")
+}
+
+model ApiLog {
+  id        String   @id @default(cuid())
+  shopId    String
+  action    String   // 'customer_create', 'customer_update', etc.
+  success   Boolean
+  request   Json?
+  response  Json?
+  error     String?
+  createdAt DateTime @default(now())
+  
+  @@index([shopId, createdAt])
+  @@map("api_logs")
+}

@@ -1,0 +1,142 @@
+{% comment %}
+  Shopify Theme App Extension
+  Renders the Form Builder block in the storefront theme
+{% endcomment %}
+
+{% assign form_slug = block.settings.form_slug %}
+{% assign form_id = block.settings.form_id %}
+
+{% if form_slug != blank %}
+  <div class="form-builder-container" data-form-slug="{{ form_slug }}">
+    <div id="form-builder-widget-{{ form_slug }}" class="form-builder-widget">
+      <div class="loading-spinner">
+        <svg class="animate-spin h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Loading form...</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const formSlug = '{{ form_slug }}';
+      const container = document.getElementById('form-builder-widget-' + formSlug);
+      
+      // Load form data
+      fetch(`/apps/form-builder/forms/${formSlug}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.form) {
+            renderForm(container, data.form);
+          } else {
+            container.innerHTML = '<p>Form not found</p>';
+          }
+        })
+        .catch(error => {
+          console.error('Error loading form:', error);
+          container.innerHTML = '<p>Error loading form</p>';
+        });
+      
+      function renderForm(container, form) {
+        // This would render the full form widget
+        // For now, showing a simplified version
+        container.innerHTML = `
+          <div class="form-builder-form">
+            <h3>${form.name}</h3>
+            <form class="space-y-4">
+              ${form.schema.fields.map(field => renderField(field)).join('')}
+              <button type="submit" class="w-full py-3 px-6 rounded-lg text-white" style="background-color: ${form.schema.styling.brandColor}">
+                ${form.schema.styling.buttonText}
+              </button>
+            </form>
+          </div>
+        `;
+      }
+      
+      function renderField(field) {
+        if (field.type === 'bestellnummer_id') {
+          return `
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label>
+              <input type="text" value="Auto-generated" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100" />
+              <p class="text-xs text-gray-500 mt-1">This ID will be automatically generated</p>
+            </div>
+          `;
+        }
+        
+        return `
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              ${field.label} ${field.required ? '<span class="text-red-500">*</span>' : ''}
+            </label>
+            <input 
+              type="${field.type}" 
+              placeholder="${field.placeholder || ''}"
+              ${field.required ? 'required' : ''}
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+              style="--tw-ring-color: ${field.brandColor || '#ff00a8'}40"
+            />
+          </div>
+        `;
+      }
+    })();
+  </script>
+
+  <style>
+    .form-builder-container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .loading-spinner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 2rem;
+      color: #6b7280;
+    }
+    
+    .loading-spinner svg {
+      margin-bottom: 0.5rem;
+    }
+    
+    .form-builder-form {
+      background: white;
+      padding: 2rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Form Builder",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "form_slug",
+      "label": "Form Slug",
+      "info": "Enter the slug of the form you want to display"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Form Builder"
+    }
+  ]
+}
+{% endschema %}
